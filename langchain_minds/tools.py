@@ -1,7 +1,9 @@
 """AIMind tool."""
 
+from importlib.metadata import version
+from packaging.version import parse
 import secrets
-from typing import Any, Optional, Text, Type
+from typing import Any, List, Optional, Text, Type
 
 from langchain_core.callbacks import (
     CallbackManagerForToolRun,
@@ -11,17 +13,26 @@ from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
 from pydantic import BaseModel, Field, SecretStr
 
 
-class AIMindToolInput(BaseModel):
+class AIMindDataSource(BaseModel):
     """
-    The input schema for the AIMindTool.
+    The configuration for data sources used by the AIMindTool.
     """
-    name: Text = Field(default=None, description="Name of the Minds")
-    minds_api_key: SecretStr = Field(default=None, description="Minds API key")
+    engine: Text = Field(description="Engine (type) of the data source")
+
+
+class AIMindAPIWrapper(BaseModel):
+    """
+    The API wrapper for the Minds API.
+    """
+    name: Text = Field(default=None)
+    minds_api_key: SecretStr = Field(default=None)
+    datasources: List[AIMindDataSource] = Field(default=None)
+
+    # Not set by the user, but used internally.
+    openai_client: Any = Field(default=None, exclude=True)
+    mind: Any = Field(default=None, exclude=True)
 
     def __init__(self, **data: Any) -> None:
-        """
-        Runs validations on the input data provided to the AIMindTool.
-        """
         super().__init__(**data)
 
         # Validate that the API key and base URL are available.
@@ -36,6 +47,55 @@ class AIMindToolInput(BaseModel):
         # If a name is not provided, generate a random one.
         if not self.name:
             self.name = f"lc_mind_{secrets.token_hex(5)}"
+
+        # Validate that the `openai` package can be imported.
+        try:
+            import openai
+        except ImportError as e:
+            raise ImportError(
+                "Could not import openai python package. "
+                "Please install it with `pip install openai`.",
+            ) from e
+
+        # Set the client based on the version of the `openai` package.
+        try:
+            openai_version = parse(version("openai"))
+            if openai_version.major >= 1:
+                client_params = {
+                    "api_key": self.minds_api_key.get_secret_value(),
+                    # "base_url": self.minds_api_base,
+                }
+                if not self.openai_client:
+                    self.openai_client = openai.OpenAI(**client_params).chat.completions
+            else:
+                # self.openai_api_base = self.minds_api_base
+                self.openai_api_key = self.minds_api_key.get_secret_value()
+                self.openai_client = openai.ChatCompletion
+        except AttributeError as exc:
+            raise ValueError(
+                "`openai` has no `ChatCompletion` attribute, this is likely "
+                "due to an old version of the openai package. Try upgrading it "
+                "with `pip install --upgrade openai`.",
+            ) from exc
+        
+        # Validate that the `minds-sdk` package can be imported.
+        try:
+            from minds.client import Client
+        except ImportError as e:
+            raise ImportError(
+                "Could not import minds-sdk python package. "
+                "Please install it with `pip install minds-sdk`.",
+            ) from e
+
+        # Create a Minds client.
+        # minds_client = Client(
+        #     self.minds_api_key.get_secret_value(), self.minds_api_base
+        # )
+
+        # Create the Mind if it does not exist and set the mind attribute.
+        # self.mind = minds_client.minds.create(
+        #     name=self.name, model_name=self.model, datasources=datasources, replace=True
+        # )
 
 
 class AIMindTool(BaseTool):  # type: ignore[override]
@@ -84,8 +144,7 @@ class AIMindTool(BaseTool):  # type: ignore[override]
     """The name that is passed to the model when performing tool calling."""
     description: str = "TODO: Tool description."
     """The description that is passed to the model when performing tool calling."""
-    args_schema: Type[BaseModel] = AIMindToolInput
-    """The schema that is passed to the model when performing tool calling."""
+    api_wrapper: Type[BaseModel] = AIMindAPIWrapper
 
     # TODO: Add any other init params for the tool.
     # param1: Optional[str]
