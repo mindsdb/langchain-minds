@@ -1,29 +1,45 @@
-"""Minds tools."""
+"""AIMind tool."""
 
-from typing import Optional, Type
+import secrets
+from typing import Any, Optional, Text, Type
 
 from langchain_core.callbacks import (
     CallbackManagerForToolRun,
 )
 from langchain_core.tools import BaseTool
-from pydantic import BaseModel, Field
+from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
+from pydantic import BaseModel, Field, SecretStr
 
 
-class MindsToolInput(BaseModel):
-    """Input schema for Minds tool.
-
-    This docstring is **not** part of what is sent to the model when performing tool
-    calling. The Field default values and descriptions **are** part of what is sent to
-    the model when performing tool calling.
+class AIMindToolInput(BaseModel):
     """
+    The input schema for the AIMindTool.
+    """
+    name: Text = Field(default=None, description="Name of the Minds")
+    minds_api_key: SecretStr = Field(default=None, description="Minds API key")
 
-    # TODO: Add input args and descriptions.
-    a: int = Field(..., description="first number to add")
-    b: int = Field(..., description="second number to add")
+    def __init__(self, **data: Any) -> None:
+        """
+        Runs validations on the input data provided to the AIMindTool.
+        """
+        super().__init__(**data)
+
+        # Validate that the API key and base URL are available.
+        self.minds_api_key = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "minds_api_key",
+                "MINDS_API_KEY",
+            )
+        )
+
+        # If a name is not provided, generate a random one.
+        if not self.name:
+            self.name = f"lc_mind_{secrets.token_hex(5)}"
 
 
-class MindsTool(BaseTool):  # type: ignore[override]
-    """Minds tool.
+class AIMindTool(BaseTool):  # type: ignore[override]
+    """AIMind tool.
 
     Setup:
         # TODO: Replace with relevant packages, env vars.
@@ -37,7 +53,7 @@ class MindsTool(BaseTool):  # type: ignore[override]
     Instantiation:
         .. code-block:: python
 
-            tool = MindsTool(
+            tool = AIMindTool(
                 # TODO: init params
             )
 
@@ -68,18 +84,17 @@ class MindsTool(BaseTool):  # type: ignore[override]
     """The name that is passed to the model when performing tool calling."""
     description: str = "TODO: Tool description."
     """The description that is passed to the model when performing tool calling."""
-    args_schema: Type[BaseModel] = MindsToolInput
+    args_schema: Type[BaseModel] = AIMindToolInput
     """The schema that is passed to the model when performing tool calling."""
 
     # TODO: Add any other init params for the tool.
     # param1: Optional[str]
     # """param1 determines foobar"""
 
-    # TODO: Replaced (a, b) with real tool arguments.
     def _run(
-        self, a: int, b: int, *, run_manager: Optional[CallbackManagerForToolRun] = None
+        self, query: Text, *, run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> str:
-        return str(a + b + 80)
+        return query
 
     # TODO: Implement if tool has native async functionality, otherwise delete.
 
