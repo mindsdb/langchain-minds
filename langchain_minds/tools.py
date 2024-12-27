@@ -17,11 +17,11 @@ class AIMindDataSource(BaseModel):
     """
     The configuration for data sources used by the AIMindTool.
     """
-    name = Text = Field(description="Name of the data source")
+    name: Text = Field(description="Name of the data source")
     engine: Text = Field(description="Engine (type) of the data source")
     description: Text = Field(description="Description of the data contained in the data source")
     connection_data: Dict[Text, Any] = Field(description="Connection parameters to establish a connection to the data source")
-    tables = Optional[List[Text]] = Field(default=[], description="List of tables from the data source to be accessible by the Mind")
+    tables: Optional[List[Text]] = Field(default=[], description="List of tables from the data source to be accessible by the Mind")
 
 
 class AIMindAPIWrapper(BaseModel):
@@ -66,12 +66,12 @@ class AIMindAPIWrapper(BaseModel):
             if openai_version.major >= 1:
                 client_params = {
                     "api_key": self.minds_api_key.get_secret_value(),
-                    # "base_url": self.minds_api_base,
+                    "base_url": "https://mdb.ai/"
                 }
                 if not self.openai_client:
                     self.openai_client = openai.OpenAI(**client_params).chat.completions
             else:
-                # self.openai_api_base = self.minds_api_base
+                self.openai_api_base = "https://mdb.ai/"
                 self.openai_api_key = self.minds_api_key.get_secret_value()
                 self.openai_client = openai.ChatCompletion
         except AttributeError as exc:
@@ -93,7 +93,8 @@ class AIMindAPIWrapper(BaseModel):
 
         # Create a Minds client.
         minds_client = Client(
-            self.minds_api_key.get_secret_value(), self.minds_api_base
+            self.minds_api_key.get_secret_value(),
+            # self.minds_api_base
         )
 
         # Create DatabaseConfig objects for each data source.
@@ -110,9 +111,21 @@ class AIMindAPIWrapper(BaseModel):
             )
 
         # Create the Mind if it does not exist and set the mind attribute.
-        self.mind = minds_client.minds.create(
-            name=self.name, model_name=self.model, datasources=datasources, replace=True
+        minds_client.minds.create(
+            name=self.name, datasources=datasources, replace=True
         )
+
+    def run(self, query: Text) -> Text:
+        """
+        Run the query against the Minds API and return the response.
+        """
+        completion = self.openai_client.create(
+            model=self.name,
+            messages=[{"role": "user", "content": query}],
+            stream=False,
+        )
+
+        return completion.choices[0].message.content
 
 
 class AIMindTool(BaseTool):  # type: ignore[override]
@@ -161,7 +174,7 @@ class AIMindTool(BaseTool):  # type: ignore[override]
     """The name that is passed to the model when performing tool calling."""
     description: str = "TODO: Tool description."
     """The description that is passed to the model when performing tool calling."""
-    api_wrapper: Type[BaseModel] = AIMindAPIWrapper
+    api_wrapper: AIMindAPIWrapper
 
     # TODO: Add any other init params for the tool.
     # param1: Optional[str]
@@ -170,7 +183,7 @@ class AIMindTool(BaseTool):  # type: ignore[override]
     def _run(
         self, query: Text, *, run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> str:
-        return query
+        return self.api_wrapper.run(query)
 
     # TODO: Implement if tool has native async functionality, otherwise delete.
 
