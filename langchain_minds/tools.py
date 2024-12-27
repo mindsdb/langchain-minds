@@ -17,11 +17,22 @@ class AIMindDataSource(BaseModel):
     """
     The configuration for data sources used by the AIMindTool.
     """
-    name: Text = Field(description="Name of the data source")
+    name: Optional[Text] = Field(description="Name of the data source")
     engine: Text = Field(description="Engine (type) of the data source")
     description: Text = Field(description="Description of the data contained in the data source")
     connection_data: Dict[Text, Any] = Field(description="Connection parameters to establish a connection to the data source")
     tables: Optional[List[Text]] = Field(default=[], description="List of tables from the data source to be accessible by the Mind")
+
+    def __init__(self, **data: Any) -> None:
+        """
+        Initializes the configuration for data sources to be used by the Mind.
+        Sets the name if not provided.
+        """
+        super().__init__(**data)
+
+        # If a name is not provided, generate a random one.
+        if not self.name:
+            self.name = f"lc_datasource_{secrets.token_hex(5)}"
 
 
 class AIMindAPIWrapper(BaseModel):
