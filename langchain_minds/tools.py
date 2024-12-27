@@ -3,7 +3,7 @@
 from importlib.metadata import version
 from packaging.version import parse
 import secrets
-from typing import Any, List, Optional, Text, Type
+from typing import Any, Dict, List, Optional, Text, Type
 
 from langchain_core.callbacks import (
     CallbackManagerForToolRun,
@@ -17,7 +17,11 @@ class AIMindDataSource(BaseModel):
     """
     The configuration for data sources used by the AIMindTool.
     """
+    name = Text = Field(description="Name of the data source")
     engine: Text = Field(description="Engine (type) of the data source")
+    description: Text = Field(description="Description of the data contained in the data source")
+    connection_data: Dict[Text, Any] = Field(description="Connection parameters to establish a connection to the data source")
+    tables = Optional[List[Text]] = Field(default=[], description="List of tables from the data source to be accessible by the Mind")
 
 
 class AIMindAPIWrapper(BaseModel):
@@ -30,7 +34,6 @@ class AIMindAPIWrapper(BaseModel):
 
     # Not set by the user, but used internally.
     openai_client: Any = Field(default=None, exclude=True)
-    mind: Any = Field(default=None, exclude=True)
 
     def __init__(self, **data: Any) -> None:
         super().__init__(**data)
@@ -81,6 +84,7 @@ class AIMindAPIWrapper(BaseModel):
         # Validate that the `minds-sdk` package can be imported.
         try:
             from minds.client import Client
+            from minds.datasources import DatabaseConfig
         except ImportError as e:
             raise ImportError(
                 "Could not import minds-sdk python package. "
@@ -88,14 +92,27 @@ class AIMindAPIWrapper(BaseModel):
             ) from e
 
         # Create a Minds client.
-        # minds_client = Client(
-        #     self.minds_api_key.get_secret_value(), self.minds_api_base
-        # )
+        minds_client = Client(
+            self.minds_api_key.get_secret_value(), self.minds_api_base
+        )
+
+        # Create DatabaseConfig objects for each data source.
+        datasources = []
+        for ds in self.datasources:
+            datasources.append(
+                DatabaseConfig(
+                    name=ds.name,
+                    engine=ds.engine,
+                    description=ds.description,
+                    connection_data=ds.connection_data,
+                    tables=ds.tables,
+                )
+            )
 
         # Create the Mind if it does not exist and set the mind attribute.
-        # self.mind = minds_client.minds.create(
-        #     name=self.name, model_name=self.model, datasources=datasources, replace=True
-        # )
+        self.mind = minds_client.minds.create(
+            name=self.name, model_name=self.model, datasources=datasources, replace=True
+        )
 
 
 class AIMindTool(BaseTool):  # type: ignore[override]
