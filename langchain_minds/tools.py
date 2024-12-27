@@ -36,6 +36,12 @@ class AIMindAPIWrapper(BaseModel):
     openai_client: Any = Field(default=None, exclude=True)
 
     def __init__(self, **data: Any) -> None:
+        """
+        Initializes the API wrapper for the Minds API.
+        Validates the API key is available and sets the name if not provided.
+        Validates the required packages can be imported and creates the Mind.
+        Initializes the OpenAI client used to interact with the created Mind.
+        """
         super().__init__(**data)
 
         # Validate that the API key and base URL are available.
@@ -132,7 +138,6 @@ class AIMindTool(BaseTool):  # type: ignore[override]
     """AIMind tool.
 
     Setup:
-        # TODO: Replace with relevant packages, env vars.
         Install ``langchain-minds`` and set environment variable ``MINDS_API_KEY``.
 
         .. code-block:: bash
@@ -142,43 +147,60 @@ class AIMindTool(BaseTool):  # type: ignore[override]
 
     Instantiation:
         .. code-block:: python
+            from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
 
-            tool = AIMindTool(
-                # TODO: init params
+
+            # Create a data source.
+            data_source = AIMindDataSource(
+                engine="postgres",
+                description="House sales data",
+                connection_data={
+                    'user': 'demo_user',
+                    'password': 'demo_password',
+                    'host': 'samples.mindsdb.com',
+                    'port': 5432,
+                    'database': 'demo',
+                    'schema': 'demo_data'
+                }
+                tables=["house_sales"],
             )
+
+            # Create the API wrapper.
+            api_wrapper = AIMindAPIWrapper(
+                datasources=[data_source]
+            )
+
+            # Create the tool.
+            tool = AIMindTool(api_wrapper=api_wrapper)
 
     Invocation with args:
         .. code-block:: python
 
-            # TODO: invoke args
-            tool.invoke({...})
+            tool.invoke({"query": "How many three-bedroom houses were sold in 2008?"})
 
         .. code-block:: python
 
-            # TODO: output of invocation
+            'The number of three-bedroom houses sold in 2008 was 8.'
 
     Invocation with ToolCall:
 
         .. code-block:: python
 
-            # TODO: invoke args
-            tool.invoke({"args": {...}, "id": "1", "name": tool.name, "type": "tool_call"})
+            tool.invoke({"args": {"query": "How many three-bedroom houses were sold in 2008?"}, "id": "1", "name": tool.name, "type": "tool_call"})
 
         .. code-block:: python
 
-            # TODO: output of invocation
+            ToolMessage(content='The query has been executed successfully. A total of 8 three-bedroom houses were sold in 2008.', name='ai_mind', tool_call_id='1')
     """  # noqa: E501
-
-    # TODO: Set tool name and description
-    name: str = "TODO: Tool name"
-    """The name that is passed to the model when performing tool calling."""
-    description: str = "TODO: Tool description."
-    """The description that is passed to the model when performing tool calling."""
+    name: str = "ai_mind"
+    description: Text = (
+        "A wrapper around [AI-Minds](https://mindsdb.com/minds). "
+        "Useful for when you need answers to questions from your data, stored in "
+        "data sources including PostgreSQL, MySQL, MariaDB, ClickHouse, Snowflake "
+        "and Google BigQuery. "
+        "Input should be a question in natural language."
+    )
     api_wrapper: AIMindAPIWrapper
-
-    # TODO: Add any other init params for the tool.
-    # param1: Optional[str]
-    # """param1 determines foobar"""
 
     def _run(
         self, query: Text, *, run_manager: Optional[CallbackManagerForToolRun] = None
