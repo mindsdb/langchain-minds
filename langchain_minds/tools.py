@@ -161,7 +161,8 @@ class AIMindTool(BaseTool):  # type: ignore[override]
             from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
 
 
-            # Create a data source.
+            # Create a data source that your Mind will have access to.
+            # To configure additional data sources, simply create additional instances of AIMindDataSource and pass it to the wrapper below.
             data_source = AIMindDataSource(
                 engine="postgres",
                 description="House sales data",
@@ -176,12 +177,12 @@ class AIMindTool(BaseTool):  # type: ignore[override]
                 tables=["house_sales"],
             )
 
-            # Create the API wrapper.
+            # Create the wrapper for the Minds API by passing in the data sources created above.
             api_wrapper = AIMindAPIWrapper(
                 datasources=[data_source]
             )
 
-            # Create the tool.
+            # Create the tool by simply passing in the API wrapper from before.
             tool = AIMindTool(api_wrapper=api_wrapper)
 
     Invocation with args:
