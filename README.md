@@ -8,7 +8,15 @@ This package contains the LangChain adapter for [Minds](https://mindsdb.com/mind
 pip install -U langchain-minds
 ```
 
-# Setup
+## Setup
+
+Login to your Minds account at https://mdb.ai and obtain an API key and set it as an environment variable.
+
+```bash
+export MINDS_API_KEY=<YOUR_API_KEY>
+```
+
+OR
 
 ```python
 import getpass
@@ -27,7 +35,8 @@ from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
 
 
 # Create a data source that your Mind will have access to.
-# To configure additional data sources, simply create additional instances of AIMindDataSource and pass it to the wrapper below.
+# To configure additional data sources, simply create additional instances of
+# AIMindDataSource and pass it to the wrapper below.
 datasource = AIMindDataSource(
     description='house sales data',
     engine='postgres',
