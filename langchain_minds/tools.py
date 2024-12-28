@@ -1,9 +1,11 @@
 """AIMind tool."""
 
-from importlib.metadata import version
-from packaging.version import parse
 import secrets
-from typing import Any, Dict, List, Optional, Text, Type
+from typing import Any, Dict, List, Optional, Text
+
+from minds.client import Client
+from minds.datasources import DatabaseConfig
+import openai
 
 from langchain_core.callbacks import (
     CallbackManagerForToolRun,
@@ -68,45 +70,11 @@ class AIMindAPIWrapper(BaseModel):
         if not self.name:
             self.name = f"lc_mind_{secrets.token_hex(5)}"
 
-        # Validate that the `openai` package can be imported.
-        try:
-            import openai
-        except ImportError as e:
-            raise ImportError(
-                "Could not import openai python package. "
-                "Please install it with `pip install openai`.",
-            ) from e
-
-        # Set the client based on the version of the `openai` package.
-        try:
-            openai_version = parse(version("openai"))
-            if openai_version.major >= 1:
-                client_params = {
-                    "api_key": self.minds_api_key.get_secret_value(),
-                    "base_url": "https://mdb.ai/"
-                }
-                if not self.openai_client:
-                    self.openai_client = openai.OpenAI(**client_params).chat.completions
-            else:
-                self.openai_api_base = "https://mdb.ai/"
-                self.openai_api_key = self.minds_api_key.get_secret_value()
-                self.openai_client = openai.ChatCompletion
-        except AttributeError as exc:
-            raise ValueError(
-                "`openai` has no `ChatCompletion` attribute, this is likely "
-                "due to an old version of the openai package. Try upgrading it "
-                "with `pip install --upgrade openai`.",
-            ) from exc
-        
-        # Validate that the `minds-sdk` package can be imported.
-        try:
-            from minds.client import Client
-            from minds.datasources import DatabaseConfig
-        except ImportError as e:
-            raise ImportError(
-                "Could not import minds-sdk python package. "
-                "Please install it with `pip install minds-sdk`.",
-            ) from e
+        # Create an OpenAI client to run queries against the Mind.
+        self.openai_client = openai.OpenAI(
+            api_key=self.minds_api_key.get_secret_value(),
+            base_url="https://mdb.ai/"
+        ).chat.completions
 
         # Create a Minds client.
         minds_client = Client(
