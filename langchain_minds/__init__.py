@@ -1,6 +1,5 @@
 from importlib import metadata
 
-from langchain_minds.toolkits import AIMindToolkit
 from langchain_minds.tools import AIMindAPIWrapper, AIMindDataSource, AIMindTool
 
 try:
@@ -11,9 +10,8 @@ except metadata.PackageNotFoundError:
 del metadata  # optional, avoids polluting the results of dir(__package__)
 
 __all__ = [
-    "AIMindToolkit",
-    "AIMindAPIWrapper",
     "AIMindDataSource",
+    "AIMindAPIWrapper",
     "AIMindTool",
     "__version__",
 ]
