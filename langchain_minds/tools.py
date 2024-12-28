@@ -19,7 +19,7 @@ class AIMindDataSource(BaseModel):
     """
     The configuration for data sources used by the AIMindTool.
     """
-    name: Optional[Text] = Field(description="Name of the data source")
+    name: Optional[Text] = Field(default=None, description="Name of the data source")
     engine: Text = Field(description="Engine (type) of the data source")
     description: Text = Field(description="Description of the data contained in the data source")
     connection_data: Dict[Text, Any] = Field(description="Connection parameters to establish a connection to the data source")
@@ -41,7 +41,7 @@ class AIMindAPIWrapper(BaseModel):
     """
     The API wrapper for the Minds API.
     """
-    name: Text = Field(default=None)
+    name: Optional[Text] = Field(default=None)
     minds_api_key: SecretStr = Field(default=None)
     datasources: List[AIMindDataSource] = Field(default=None)
 
