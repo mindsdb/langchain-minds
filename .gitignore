@@ -5,3 +5,6 @@ __pycache__
 
 # VS Code
 .vscode
+
+# MyPy
+.mypy_cache
