@@ -1,27 +1,36 @@
 from typing import Type
 
-from langchain_minds.tools import MindsTool
 from langchain_tests.integration_tests import ToolsIntegrationTests
 
+from langchain_minds import AIMindAPIWrapper, AIMindDataSource, AIMindTool
 
-class TestParrotMultiplyToolIntegration(ToolsIntegrationTests):
+
+class TestAIMindToolIntegration(ToolsIntegrationTests):
     @property
-    def tool_constructor(self) -> Type[MindsTool]:
-        return MindsTool
+    def tool_constructor(self) -> Type[AIMindTool]:
+        return AIMindTool
 
     @property
     def tool_constructor_params(self) -> dict:
-        # if your tool constructor instead required initialization arguments like
-        # `def __init__(self, some_arg: int):`, you would return those here
-        # as a dictionary, e.g.: `return {'some_arg': 42}`
-        return {}
+        datasource = AIMindDataSource(
+            description="house sales",
+            engine="postgres",
+            connection_data={
+                "user": "demo_user",
+                "password": "demo_password",
+                "host": "samples.mindsdb.com",
+                "port": 5432,
+                "database": "demo",
+                "schema": "demo_data",
+            },
+            tables=["house_sales"],
+        )
+        api_wrapper = AIMindAPIWrapper(datasources=[datasource])
+        return {"api_wrapper": api_wrapper}
 
     @property
     def tool_invoke_params_example(self) -> dict:
         """
         Returns a dictionary representing the "args" of an example tool call.
-
-        This should NOT be a ToolCall dict - i.e. it should not
-        have {"name", "id", "args"} keys.
         """
-        return {"a": 2, "b": 3}
+        return {"query": "How many three-bedroom houses were sold in 2008?"}
