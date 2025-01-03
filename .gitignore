@@ -2,3 +2,9 @@ __pycache__
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# VS Code
+.vscode
+
+# MyPy
+.mypy_cache
