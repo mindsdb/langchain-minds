@@ -41,6 +41,8 @@ jobs:
 
       - name: Run core tests
         shell: bash
+        env:
+          MINDS_API_KEY: ${{ secrets.MINDS_API_KEY }}
         run: |
           make test
 
