@@ -13,6 +13,7 @@ license = "MIT"
 
 [tool.mypy]
 disallow_untyped_defs = "True"
+ignore_missing_imports = "True"
 
 [tool.poetry.urls]
 "Source Code" = "https://github.com/mindsdb/langchain-minds/tree/master/libs/partners/minds"
