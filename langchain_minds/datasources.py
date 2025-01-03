@@ -53,6 +53,59 @@ class AIMindDataSource(BaseModel):
         }
 
 
+class AmazonDynamoDBDataSource(BaseModel):
+    """
+    The configuration (connection parameters) for an Amazon DynamoDB data source.
+    """
+    aws_access_key_id: SecretStr = Field(default=None)
+    aws_secret_access_key: SecretStr = Field(default=None)
+    region_name: Text = Field(default=None)
+    aws_session_token: SecretStr = Field(default=None)
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self.aws_access_key_id = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "aws_access_key_id",
+                "AWS_ACCESS_KEY_ID",
+            )
+        )
+        self.aws_secret_access_key = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "aws_secret_access_key",
+                "AWS_SECRET_ACCESS_KEY",
+            )
+        )
+        self.region_name = get_from_dict_or_env(
+            data,
+            "region_name",
+            "AWS_REGION_NAME",
+        )
+        self.aws_session_token = (
+            convert_to_secret_str(
+                get_from_dict_or_env(
+                    data,
+                    "aws_session_token",
+                    "AWS_SESSION_TOKEN",
+                    default="",
+                ) or None
+            )
+        )
+
+    def dict(self, **kwargs: Any) -> Dict:
+        base_dict = super().dict(**kwargs)
+
+        # Convert the secret access key and session token to a string.
+        base_dict["aws_access_key_id"] = base_dict["aws_access_key_id"].get_secret_value()
+        base_dict["aws_secret_access_key"] = base_dict["aws_secret_access_key"].get_secret_value()
+        if base_dict["aws_session_token"]:
+            base_dict["aws_session_token"] = base_dict["aws_session_token"].get_secret_value()
+
+        return base_dict
+
+
 class PostgresDataSource(BaseModel):
     """
     The configuration (connection parameters) for a PostgreSQL data source.
@@ -126,6 +179,250 @@ class PostgresDataSource(BaseModel):
             del base_dict["database_schema"]
 
         return base_dict
+
+
+class AmazonRedshiftDataSource(PostgresDataSource):
+    """
+    The configuration (connection parameters) for an Amazon Redshift data source.
+    """
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self.user = get_from_dict_or_env(
+            data,
+            "user",
+            "REDSHIFT_USER",
+        )
+        self.password = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "password",
+                "REDSHIFT_PASSWORD",
+            )
+        )
+        self.host = get_from_dict_or_env(
+            data,
+            "host",
+            "REDSHIFT_HOST",
+        )
+        self.port = get_from_dict_or_env(
+            data,
+            "port",
+            "REDSHIFT_PORT",
+            default=5439,
+        )
+        self.database = get_from_dict_or_env(
+            data,
+            "database",
+            "REDSHIFT_DATABASE",
+        )
+        self.database_schema = (
+            get_from_dict_or_env(
+                data,
+                "schema",
+                "REDSHIFT_SCHEMA",
+                default="",
+            )
+            or None
+        )
+        self.sslmode = (
+            get_from_dict_or_env(
+                data,
+                "sslmode",
+                "REDSHIFT_SSLMODE",
+                default="",
+            )
+            or None
+        )
+
+
+class AmazonS3DataSource(BaseModel):
+    """
+    The configuration (connection parameters) for an Amazon S3 data source.
+    """
+    aws_access_key_id: SecretStr = Field(default=None)
+    aws_secret_access_key: SecretStr = Field(default=None)
+    bucket: Text = Field(default=None)
+    aws_session_token: SecretStr = Field(default=None)
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self.aws_access_key_id = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "aws_access_key_id",
+                "AWS_ACCESS_KEY_ID",
+            )
+        )
+        self.aws_secret_access_key = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "aws_secret_access_key",
+                "AWS_SECRET_ACCESS_KEY",
+            )
+        )
+        self.bucket = (
+            get_from_dict_or_env(
+                data,
+                "bucket",
+                "AWS_S3_BUCKET",
+                default="",
+            ) or None
+        )
+        self.aws_session_token = (
+            convert_to_secret_str(
+                get_from_dict_or_env(
+                    data,
+                    "aws_session_token",
+                    "AWS_SESSION_TOKEN",
+                    default="",
+                ) or None
+            )
+        )
+
+    def dict(self, **kwargs: Any) -> Dict:
+        base_dict = super().dict(**kwargs)
+
+        # Convert the secret access key and session token to a string.
+        base_dict["aws_access_key_id"] = base_dict["aws_access_key_id"].get_secret_value()
+        base_dict["aws_secret_access_key"] = base_dict["aws_secret_access_key"].get_secret_value()
+        if base_dict["aws_session_token"]:
+            base_dict["aws_session_token"] = base_dict["aws_session_token"].get_secret_value()
+
+        return base_dict
+    
+
+class DatabricksDataSource(BaseModel):
+    """
+    The configuration (connection parameters) for a Databricks data source.
+    """
+    server_hostname: Text = Field(default=None)
+    http_path: Text = Field(default=None)
+    access_token: SecretStr = Field(default=None)
+    session_confirguration: Dict[Text, Any] = Field(default=None)
+    http_headers: Dict[Text, Any] = Field(default=None)
+    catalog: Text = Field(default=None)
+    schema: Text = Field(default=None)
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self.server_hostname = get_from_dict_or_env(
+            data,
+            "server_hostname",
+            "DATABRICKS_SERVER_HOSTNAME",
+        )
+        self.http_path = get_from_dict_or_env(
+            data,
+            "http_path",
+            "DATABRICKS_HTTP_PATH",
+        )
+        self.access_token = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "access_token",
+                "DATABRICKS_ACCESS_TOKEN",
+            )
+        )
+        self.session_confirguration = (
+            get_from_dict_or_env(
+                data,
+                "session_confirguration",
+                "DATABRICKS_SESSION_CONFIGURATION",
+                default={},
+            ) or None
+        )
+        self.http_headers = (
+            get_from_dict_or_env(
+                data,
+                "http_headers",
+                "DATABRICKS_HTTP_HEADERS",
+                default={},
+            ) or None
+        )
+        self.catalog = (
+            get_from_dict_or_env(
+                data,
+                "catalog",
+                "DATABRICKS_CATALOG",
+                default="",
+            ) or None
+        )
+        self.schema = (
+            get_from_dict_or_env(
+                data,
+                "schema",
+                "DATABRICKS_SCHEMA",
+                default="",
+            )
+            or None
+        )
+
+
+class ElasticsearchDataSource(BaseModel):
+    """
+    The configuration (connection parameters) for an Elasticsearch data source.
+    """
+    cloud_id: Text = Field(default=None)
+    hosts: Text = Field(default=None)
+    api_key: SecretStr = Field(default=None)
+    user: Text = Field(default=None)
+    password: SecretStr = Field(default=None)
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self.cloud_id = (
+            get_from_dict_or_env(
+                data,
+                "cloud_id",
+                "ELASTICSEARCH_CLOUD_ID",
+                default="",
+            ) or None
+        )
+        self.hosts = (
+            get_from_dict_or_env(
+                data,
+                "hosts",
+                "ELASTICSEARCH_HOSTS",
+                default="",
+            ) or None
+        )
+        self.api_key = (
+            get_from_dict_or_env(
+                data,
+                "api_key",
+                "ELASTICSEARCH_API_KEY",
+                default="",
+            ) or None
+        )
+        if self.api_key:
+            self.api_key = convert_to_secret_str(self.api_key)
+        self.user = (
+            get_from_dict_or_env(
+                data,
+                "user",
+                "ELASTICSEARCH_USER",
+                default="",
+            ) or None
+        )
+        self.password = (
+            get_from_dict_or_env(
+                data,
+                "password",
+                "ELASTICSEARCH_PASSWORD",
+                default="",
+            ) or None
+        )
+        if self.password:
+            self.password = convert_to_secret_str(self.password)
+
+        if not self.cloud_id and not self.hosts:
+            raise ValueError(
+                "Either a valid cloud_id or hosts must be provided."
+            )
+        
+        if self.api_key and not (self.user and self.password):
+            raise ValueError(
+                "Either a valid api_key or user and password must be provided."
+            )
 
 
 class MySQLDataSource(BaseModel):
@@ -442,3 +739,41 @@ class BigQueryDataSource(BaseModel):
             base_dict["service_account_json"].get_secret_value()
         )
         return base_dict
+
+
+class TeradataDataSource(BaseModel):
+    """
+    The configuration (connection parameters) for a Teradata data source.
+    """
+    host: Text = Field(default=None)
+    user: Text = Field(default=None)
+    password: SecretStr = Field(default=None)
+    database: Text = Field(default=None)
+
+    def __init__(self, **data: Any) -> None:
+        super().__init__(**data)
+        self.host = get_from_dict_or_env(
+            data,
+            "host",
+            "TERADATA_HOST",
+        )
+        self.user = get_from_dict_or_env(
+            data,
+            "user",
+            "TERADATA_USER",
+        )
+        self.password = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "password",
+                "TERADATA_PASSWORD",
+            )
+        )
+        self.database = (
+            get_from_dict_or_env(
+                data,
+                "database",
+                "TERADATA_DATABASE",
+            )
+            or None
+        )
