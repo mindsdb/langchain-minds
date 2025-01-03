@@ -3,15 +3,14 @@
 import secrets
 from typing import Any, Dict, List, Optional, Text
 
-from minds.client import Client
-from minds.datasources import DatabaseConfig
 import openai
-
 from langchain_core.callbacks import (
     CallbackManagerForToolRun,
 )
 from langchain_core.tools import BaseTool
 from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
+from minds.client import Client
+from minds.datasources import DatabaseConfig
 from pydantic import BaseModel, Field, SecretStr
 
 
@@ -19,11 +18,19 @@ class AIMindDataSource(BaseModel):
     """
     The configuration for data sources used by the AIMindTool.
     """
+
     name: Optional[Text] = Field(default=None, description="Name of the data source")
     engine: Text = Field(description="Engine (type) of the data source")
-    description: Text = Field(description="Description of the data contained in the data source")
-    connection_data: Dict[Text, Any] = Field(description="Connection parameters to establish a connection to the data source")
-    tables: Optional[List[Text]] = Field(default=[], description="List of tables from the data source to be accessible by the Mind")
+    description: Text = Field(
+        description="Description of the data contained in the data source"
+    )
+    connection_data: Dict[Text, Any] = Field(
+        description="Connection parameters to establish a connection to the data source"
+    )
+    tables: Optional[List[Text]] = Field(
+        default=[],
+        description="List of tables from the data source to be accessible by the Mind",
+    )
 
     def __init__(self, **data: Any) -> None:
         """
@@ -41,6 +48,7 @@ class AIMindAPIWrapper(BaseModel):
     """
     The API wrapper for the Minds API.
     """
+
     name: Optional[Text] = Field(default=None)
     minds_api_key: SecretStr = Field(default=None)
     datasources: List[AIMindDataSource] = Field(default=None)
@@ -72,8 +80,7 @@ class AIMindAPIWrapper(BaseModel):
 
         # Create an OpenAI client to run queries against the Mind.
         self.openai_client = openai.OpenAI(
-            api_key=self.minds_api_key.get_secret_value(),
-            base_url="https://mdb.ai/"
+            api_key=self.minds_api_key.get_secret_value(), base_url="https://mdb.ai/"
         ).chat.completions
 
         # Create a Minds client.
@@ -96,9 +103,7 @@ class AIMindAPIWrapper(BaseModel):
             )
 
         # Create the Mind if it does not exist and set the mind attribute.
-        minds_client.minds.create(
-            name=self.name, datasources=datasources, replace=True
-        )
+        minds_client.minds.create(name=self.name, datasources=datasources, replace=True)
 
     def run(self, query: Text) -> Text:
         """
@@ -172,6 +177,7 @@ class AIMindTool(BaseTool):  # type: ignore[override]
 
             ToolMessage(content='The query has been executed successfully. A total of 8 three-bedroom houses were sold in 2008.', name='ai_mind', tool_call_id='1')
     """  # noqa: E501
+
     name: str = "ai_mind"
     description: Text = (
         "A wrapper around [AI-Minds](https://mindsdb.com/minds). "
