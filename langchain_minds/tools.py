@@ -11,6 +11,7 @@ from langchain_core.tools import BaseTool
 from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
 from minds.client import Client
 from minds.datasources import DatabaseConfig
+from minds.exceptions import ObjectNotFound
 from pydantic import BaseModel, Field, SecretStr
 
 
@@ -49,8 +50,8 @@ class AIMindAPIWrapper(BaseModel):
     The API wrapper for the Minds API.
     """
 
-    name: Optional[Text] = Field(default=None)
-    minds_api_key: SecretStr = Field(default=None)
+    name: Text = Field(description="Name of the Mind")
+    minds_api_key: SecretStr = Field(default=None, description="API key for the Minds API")
     datasources: List[AIMindDataSource] = Field(default=None)
 
     # Not set by the user, but used internally.
@@ -74,10 +75,6 @@ class AIMindAPIWrapper(BaseModel):
             )
         )
 
-        # If a name is not provided, generate a random one.
-        if not self.name:
-            self.name = f"lc_mind_{secrets.token_hex(5)}"
-
         # Create an OpenAI client to run queries against the Mind.
         self.openai_client = openai.OpenAI(
             api_key=self.minds_api_key.get_secret_value(), base_url="https://mdb.ai/"
@@ -88,6 +85,16 @@ class AIMindAPIWrapper(BaseModel):
             self.minds_api_key.get_secret_value(),
             # self.minds_api_base
         )
+
+        # Check if the Mind already exists.
+        try:
+            if minds_client.minds.get(self.name):
+                # TODO: If the Mind already exists and data sources are provided, what should happen?
+                # TODO: Add the new data sources?
+                # TODO: Replace the existing data sources?
+                return
+        except ObjectNotFound:
+            pass
 
         # Create DatabaseConfig objects for each data source.
         datasources = []
