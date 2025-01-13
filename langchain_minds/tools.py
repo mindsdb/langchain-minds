@@ -1,7 +1,7 @@
 """AIMind tool."""
 
 import os
-from typing import Any, Dict, List, Optional, Text
+from typing import Any, Dict, List, Optional, Text, Union
 
 import openai
 from langchain_core.callbacks import (
@@ -16,12 +16,17 @@ from pydantic import BaseModel, Field, SecretStr
 
 
 class AIMindEnvVar:
-    def __init__(self, name, is_secret=False):
+    """
+    The loader for environment variables used by the AIMindTool.
+    """
+
+    value: Union[Text, SecretStr]
+
+    def __init__(self, name: Text, is_secret: bool = False) -> None:
         if is_secret:
             self.value = convert_to_secret_str(os.environ[name])
         else:
             self.value = os.environ[name]
-        self.is_secret = is_secret
 
 
 class AIMindDataSource(BaseModel):
@@ -100,10 +105,12 @@ class AIMindDataSource(BaseModel):
 
         # Convert the parameters set as environment variables to the actual values.
         connection_data = {}
-        for key, value in self.connection_data.items():
+        for key, value in (self.connection_data or {}).items():
             if isinstance(value, AIMindEnvVar):
                 connection_data[key] = (
-                    value.value.get_secret_value() if value.is_secret else value.value
+                    value.value.get_secret_value()
+                    if isinstance(value.value, SecretStr)
+                    else value.value
                 )
             else:
                 connection_data[key] = value
@@ -188,7 +195,7 @@ class AIMindAPIWrapper(BaseModel):
         mind = minds_client.minds.create(name=self.name)
 
         # Add the data sources to the Mind.
-        for data_source in self.datasources:
+        for data_source in self.datasources or []:
             mind.add_datasource(data_source.name)
 
     def run(self, query: Text) -> Text:
