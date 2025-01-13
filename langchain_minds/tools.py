@@ -20,11 +20,15 @@ class AIMindDataSource(BaseModel):
 
     name: Text = Field(default=None, description="Name of the data source")
     minds_api_key: SecretStr = Field(default=None, description="API key for the Minds API")
-    engine: Optional[Text] = Field(description="Engine (type) of the data source")
+    engine: Optional[Text] = Field(
+        default=None,
+        description="Engine (type) of the data source")
     description: Optional[Text] = Field(
+        default="",
         description="Description of the data contained in the data source"
     )
     connection_data: Optional[Dict[Text, Any]] = Field(
+        default={},
         description="Connection parameters to establish a connection to the data source"
     )
     tables: Optional[List[Text]] = Field(
@@ -142,7 +146,7 @@ class AIMindAPIWrapper(BaseModel):
         except ObjectNotFound:
             # If the data sources are not provided, raise an error.
             if not self.datasources:
-                raise ValueError("At least one data source should be configured.")
+                raise ValueError("At least one data source should be configured to create a Mind.")
 
         # Create the Mind.
         mind = minds_client.minds.create(name=self.name)
