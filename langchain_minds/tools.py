@@ -10,6 +10,7 @@ from langchain_core.callbacks import (
 from langchain_core.tools import BaseTool
 from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
 from minds.client import Client
+from minds.datasources import DatabaseConfig
 from minds.exceptions import ObjectNotFound
 from pydantic import BaseModel, Field, SecretStr
 
@@ -98,11 +99,13 @@ class AIMindDataSource(BaseModel):
 
         # Create the data source.
         minds_client.datasources.create(
-            name=self.name,
-            engine=self.engine,
-            description=self.description,
-            connection_data=connection_data,
-            tables=self.tables,
+            DatabaseConfig(
+                name=self.name,
+                engine=self.engine,
+                description=self.description,
+                connection_data=connection_data,
+                tables=self.tables,
+            )
         )
 
 
