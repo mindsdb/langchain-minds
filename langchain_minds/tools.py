@@ -165,64 +165,9 @@ class AIMindAPIWrapper(BaseModel):
 
 
 class AIMindTool(BaseTool):  # type: ignore[override]
-    """AIMind tool.
-
-    Setup:
-        Install ``langchain-minds`` and set environment variable ``MINDS_API_KEY``.
-
-        .. code-block:: bash
-
-            pip install -U langchain-minds
-            export MINDS_API_KEY="your-api-key"
-
-    Instantiation:
-        .. code-block:: python
-            from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
-
-
-            # Create a data source that your Mind will have access to.
-            # To configure additional data sources, simply create additional instances of AIMindDataSource and pass it to the wrapper below.
-            data_source = AIMindDataSource(
-                engine="postgres",
-                description="House sales data",
-                connection_data={
-                    'user': 'demo_user',
-                    'password': 'demo_password',
-                    'host': 'samples.mindsdb.com',
-                    'port': 5432,
-                    'database': 'demo',
-                    'schema': 'demo_data'
-                }
-                tables=["house_sales"],
-            )
-
-            # Create the wrapper for the Minds API by passing in the data sources created above.
-            api_wrapper = AIMindAPIWrapper(
-                datasources=[data_source]
-            )
-
-            # Create the tool by simply passing in the API wrapper from before.
-            tool = AIMindTool(api_wrapper=api_wrapper)
-
-    Invocation with args:
-        .. code-block:: python
-
-            tool.invoke({"query": "How many three-bedroom houses were sold in 2008?"})
-
-        .. code-block:: python
-
-            'The number of three-bedroom houses sold in 2008 was 8.'
-
-    Invocation with ToolCall:
-
-        .. code-block:: python
-
-            tool.invoke({"args": {"query": "How many three-bedroom houses were sold in 2008?"}, "id": "1", "name": tool.name, "type": "tool_call"})
-
-        .. code-block:: python
-
-            ToolMessage(content='The query has been executed successfully. A total of 8 three-bedroom houses were sold in 2008.', name='ai_mind', tool_call_id='1')
-    """  # noqa: E501
+    """
+    The AIMind tool.
+    """
 
     name: str = "ai_mind"
     description: Text = (
