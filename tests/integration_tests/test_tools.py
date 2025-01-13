@@ -13,7 +13,7 @@ class TestAIMindToolIntegration(ToolsIntegrationTests):
     @property
     def tool_constructor_params(self) -> dict:
         datasource = AIMindDataSource(
-            name='test_datasource',
+            name="test_datasource",
             description="house sales",
             engine="postgres",
             connection_data={
@@ -26,10 +26,7 @@ class TestAIMindToolIntegration(ToolsIntegrationTests):
             },
             tables=["house_sales"],
         )
-        api_wrapper = AIMindAPIWrapper(
-            name="test_mind",
-            datasources=[datasource]
-        )
+        api_wrapper = AIMindAPIWrapper(name="test_mind", datasources=[datasource])
         return {"api_wrapper": api_wrapper}
 
     @property

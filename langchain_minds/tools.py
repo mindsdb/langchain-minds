@@ -41,7 +41,7 @@ class AIMindDataSource(BaseModel):
     )
     connection_data: Optional[Dict[Text, Any]] = Field(
         default={},
-        description="Connection parameters to establish a connection to the data source",
+        description="Connection parameters to connect to the data source",
     )
     tables: Optional[List[Text]] = Field(
         default=[],
@@ -56,7 +56,13 @@ class AIMindDataSource(BaseModel):
 
         There are two ways to initialize the data source:
         1. If the data source already exists, only the name is required.
-        2. If the data source does not exist, the engine, description and connection_data are required.
+        2. If the data source does not exist, the following are required:
+            - name
+            - engine
+            - description
+            - connection_data
+
+        The tables are optional and can be provided if the data source does not exist.
         """
         super().__init__(**data)
 
@@ -78,19 +84,21 @@ class AIMindDataSource(BaseModel):
         # Check if the data source already exists.
         try:
             if minds_client.datasources.get(self.name):
-                # TODO: If the data source already exists and the other parameters are provided,
+                # TODO: If the data source exists and the other parameters are provided,
                 # what should happen?
                 # Update the data source?
                 # Ignore them and use just the name?
                 return
         except ObjectNotFound:
-            # If the parameters for creating the data source are not provided, raise an error.
+            # If the parameters for creating the data source are not provided,
+            # raise an error.
             if not self.engine or not self.description or not self.connection_data:
                 raise ValueError(
-                    "The required parameters for creating the data source are not provided."
+                    "The required parameters for creating the data source are not"
+                    " provided."
                 )
 
-        # Convert the connection parameters set as environment variables to the actual values.
+        # Convert the parameters set as environment variables to the actual values.
         connection_data = {}
         for key, value in self.connection_data.items():
             if isinstance(value, AIMindEnvVar):
@@ -137,7 +145,7 @@ class AIMindAPIWrapper(BaseModel):
 
         There are two ways to initialize the API wrapper:
         1. If the Mind already exists, only the name is required.
-        2. If the Mind does not exist, the data sources are required.
+        2. If the Mind does not exist, data sources are required.
         """
         super().__init__(**data)
 
@@ -164,7 +172,8 @@ class AIMindAPIWrapper(BaseModel):
         # Check if the Mind already exists.
         try:
             if minds_client.minds.get(self.name):
-                # TODO: If the Mind already exists and data sources are provided, what should happen?
+                # TODO: If the Mind exists and data sources are provided,
+                # what should happen?
                 # Add the new data sources?
                 # Replace the existing data sources?
                 return
