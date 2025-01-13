@@ -1,5 +1,6 @@
 """AIMind tool."""
 
+import os
 from typing import Any, Dict, List, Optional, Text
 
 import openai
@@ -11,6 +12,15 @@ from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
 from minds.client import Client
 from minds.exceptions import ObjectNotFound
 from pydantic import BaseModel, Field, SecretStr
+
+
+class AIMindEnvVar:
+    def __init__(self, name, is_secret=False):
+        if is_secret:
+            self.value = convert_to_secret_str(os.environ[name])
+        else:
+            self.value = os.environ[name]
+        self.is_secret = is_secret
 
 
 class AIMindDataSource(BaseModel):
@@ -77,13 +87,21 @@ class AIMindDataSource(BaseModel):
                 raise ValueError(
                     "The required parameters for creating the data source are not provided."
                 )
+            
+        # Convert the connection parameters set as environment variables to the actual values.
+        connection_data = {}
+        for key, value in self.connection_data.items():
+            if isinstance(value, AIMindEnvVar):
+                connection_data[key] = value.value.get_secret_value() if value.is_secret else value.value
+            else:
+                connection_data[key] = value
 
         # Create the data source.
         minds_client.datasources.create(
             name=self.name,
             engine=self.engine,
             description=self.description,
-            connection_data=self.connection_data,
+            connection_data=connection_data,
             tables=self.tables,
         )
 
