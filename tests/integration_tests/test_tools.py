@@ -12,21 +12,12 @@ class TestAIMindToolIntegration(ToolsIntegrationTests):
 
     @property
     def tool_constructor_params(self) -> dict:
-        datasource = AIMindDataSource(
+        # Re-uses an existing data source and API wrapper.
+        # Only the name is required to initialize existing objects.
+        AIMindDataSource(
             name="test_datasource",
-            description="house sales",
-            engine="postgres",
-            connection_data={
-                "user": "demo_user",
-                "password": "demo_password",
-                "host": "samples.mindsdb.com",
-                "port": 5432,
-                "database": "demo",
-                "schema": "demo_data",
-            },
-            tables=["house_sales"],
         )
-        api_wrapper = AIMindAPIWrapper(name="test_mind", datasources=[datasource])
+        api_wrapper = AIMindAPIWrapper(name="test_mind")
         return {"api_wrapper": api_wrapper}
 
     @property
