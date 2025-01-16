@@ -1,7 +1,7 @@
 """AIMind tool."""
 
-import secrets
-from typing import Any, Dict, List, Optional, Text
+import os
+from typing import Any, Dict, List, Optional, Union
 
 import openai
 from langchain_core.callbacks import (
@@ -11,7 +11,22 @@ from langchain_core.tools import BaseTool
 from langchain_core.utils import convert_to_secret_str, get_from_dict_or_env
 from minds.client import Client
 from minds.datasources import DatabaseConfig
+from minds.exceptions import ObjectNotFound
 from pydantic import BaseModel, Field, SecretStr
+
+
+class AIMindEnvVar:
+    """
+    The loader for environment variables used by the AIMindTool.
+    """
+
+    value: Union[str, SecretStr]
+
+    def __init__(self, name: str, is_secret: bool = False) -> None:
+        if is_secret:
+            self.value = convert_to_secret_str(os.environ[name])
+        else:
+            self.value = os.environ[name]
 
 
 class AIMindDataSource(BaseModel):
@@ -19,53 +34,44 @@ class AIMindDataSource(BaseModel):
     The configuration for data sources used by the AIMindTool.
     """
 
-    name: Optional[Text] = Field(default=None, description="Name of the data source")
-    engine: Text = Field(description="Engine (type) of the data source")
-    description: Text = Field(
-        description="Description of the data contained in the data source"
+    name: str = Field(default=None, description="Name of the data source")
+    minds_api_key: Optional[SecretStr] = Field(
+        default=None, description="API key for the Minds API"
     )
-    connection_data: Dict[Text, Any] = Field(
-        description="Connection parameters to establish a connection to the data source"
+    engine: Optional[str] = Field(
+        default=None, description="Engine (type) of the data source"
     )
-    tables: Optional[List[Text]] = Field(
+    description: Optional[str] = Field(
+        default="", description="Description of the data contained in the data source"
+    )
+    connection_data: Optional[Dict[str, Any]] = Field(
+        default={},
+        description="Connection parameters to connect to the data source",
+    )
+    tables: Optional[List[str]] = Field(
         default=[],
         description="List of tables from the data source to be accessible by the Mind",
     )
 
     def __init__(self, **data: Any) -> None:
         """
-        Initializes the configuration for data sources to be used by the Mind.
-        Sets the name if not provided.
+        Initializes the data source configuration.
+        Validates the API key is available and the name is set.
+        Creates the data source if it does not exist.
+
+        There are two ways to initialize the data source:
+        1. If the data source already exists, only the name is required.
+        2. If the data source does not exist, the following are required:
+            - name
+            - engine
+            - description
+            - connection_data
+
+        The tables are optional and can be provided if the data source does not exist.
         """
         super().__init__(**data)
 
-        # If a name is not provided, generate a random one.
-        if not self.name:
-            self.name = f"lc_datasource_{secrets.token_hex(5)}"
-
-
-class AIMindAPIWrapper(BaseModel):
-    """
-    The API wrapper for the Minds API.
-    """
-
-    name: Optional[Text] = Field(default=None)
-    minds_api_key: SecretStr = Field(default=None)
-    datasources: List[AIMindDataSource] = Field(default=None)
-
-    # Not set by the user, but used internally.
-    openai_client: Any = Field(default=None, exclude=True)
-
-    def __init__(self, **data: Any) -> None:
-        """
-        Initializes the API wrapper for the Minds API.
-        Validates the API key is available and sets the name if not provided.
-        Validates the required packages can be imported and creates the Mind.
-        Initializes the OpenAI client used to interact with the created Mind.
-        """
-        super().__init__(**data)
-
-        # Validate that the API key and base URL are available.
+        # Validate that the API key is provided.
         self.minds_api_key = convert_to_secret_str(
             get_from_dict_or_env(
                 data,
@@ -74,9 +80,93 @@ class AIMindAPIWrapper(BaseModel):
             )
         )
 
-        # If a name is not provided, generate a random one.
-        if not self.name:
-            self.name = f"lc_mind_{secrets.token_hex(5)}"
+        # Create a Minds client.
+        minds_client = Client(
+            self.minds_api_key.get_secret_value(),
+            # self.minds_api_base
+        )
+
+        # Check if the data source already exists.
+        try:
+            # If the data source already exists, only the name is required.
+            if minds_client.datasources.get(self.name) and (
+                self.engine or self.description or self.connection_data
+            ):
+                raise ValueError(
+                    f"The data source with the name '{self.name}' already exists."
+                    "Only the name is required to initialize an existing data source."
+                )
+            return
+        except ObjectNotFound:
+            # If the parameters for creating the data source are not provided,
+            # raise an error.
+            if not self.engine or not self.connection_data:
+                raise ValueError(
+                    "The required parameters for creating the data source are not"
+                    " provided."
+                )
+
+        # Convert the parameters set as environment variables to the actual values.
+        connection_data = {}
+        for key, value in (self.connection_data or {}).items():
+            if isinstance(value, AIMindEnvVar):
+                connection_data[key] = (
+                    value.value.get_secret_value()
+                    if isinstance(value.value, SecretStr)
+                    else value.value
+                )
+            else:
+                connection_data[key] = value
+
+        # Create the data source.
+        minds_client.datasources.create(
+            DatabaseConfig(
+                name=self.name,
+                engine=self.engine,
+                description=self.description,
+                connection_data=connection_data,
+                tables=self.tables,
+            )
+        )
+
+
+class AIMindAPIWrapper(BaseModel):
+    """
+    The API wrapper for the Minds API.
+    """
+
+    name: str = Field(description="Name of the Mind")
+    minds_api_key: Optional[SecretStr] = Field(
+        default=None, description="API key for the Minds API"
+    )
+    datasources: Optional[List[AIMindDataSource]] = Field(
+        default=[], description="List of data sources to be accessible by the Mind"
+    )
+
+    # Not set by the user, but used internally.
+    openai_client: Any = Field(default=None, exclude=True)
+
+    def __init__(self, **data: Any) -> None:
+        """
+        Initializes the API wrapper for the Minds API.
+        Validates the API key is available and the name is set.
+        Creates the Mind and adds the data sources to it.
+        Initializes the OpenAI client used to interact with the created Mind.
+
+        There are two ways to initialize the API wrapper:
+        1. If the Mind already exists, only the name is required.
+        2. If the Mind does not exist, data sources are required.
+        """
+        super().__init__(**data)
+
+        # Validate that the API key is provided.
+        self.minds_api_key = convert_to_secret_str(
+            get_from_dict_or_env(
+                data,
+                "minds_api_key",
+                "MINDS_API_KEY",
+            )
+        )
 
         # Create an OpenAI client to run queries against the Mind.
         self.openai_client = openai.OpenAI(
@@ -89,23 +179,30 @@ class AIMindAPIWrapper(BaseModel):
             # self.minds_api_base
         )
 
-        # Create DatabaseConfig objects for each data source.
-        datasources = []
-        for ds in self.datasources:
-            datasources.append(
-                DatabaseConfig(
-                    name=ds.name,
-                    engine=ds.engine,
-                    description=ds.description,
-                    connection_data=ds.connection_data,
-                    tables=ds.tables,
+        # Check if the Mind already exists.
+        try:
+            # If the Mind already exists, only the name is required.
+            if minds_client.minds.get(self.name) and self.datasources:
+                raise ValueError(
+                    f"The Mind with the name '{self.name}' already exists."
+                    "Only the name is required to initialize an existing Mind."
                 )
-            )
+            return
+        except ObjectNotFound:
+            # If the data sources are not provided, raise an error.
+            if not self.datasources:
+                raise ValueError(
+                    "At least one data source should be configured to create a Mind."
+                )
 
-        # Create the Mind if it does not exist and set the mind attribute.
-        minds_client.minds.create(name=self.name, datasources=datasources, replace=True)
+        # Create the Mind.
+        mind = minds_client.minds.create(name=self.name)
 
-    def run(self, query: Text) -> Text:
+        # Add the data sources to the Mind.
+        for data_source in self.datasources or []:
+            mind.add_datasource(data_source.name)
+
+    def run(self, query: str) -> str:
         """
         Run the query against the Minds API and return the response.
         """
@@ -119,67 +216,12 @@ class AIMindAPIWrapper(BaseModel):
 
 
 class AIMindTool(BaseTool):  # type: ignore[override]
-    """AIMind tool.
-
-    Setup:
-        Install ``langchain-minds`` and set environment variable ``MINDS_API_KEY``.
-
-        .. code-block:: bash
-
-            pip install -U langchain-minds
-            export MINDS_API_KEY="your-api-key"
-
-    Instantiation:
-        .. code-block:: python
-            from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
-
-
-            # Create a data source that your Mind will have access to.
-            # To configure additional data sources, simply create additional instances of AIMindDataSource and pass it to the wrapper below.
-            data_source = AIMindDataSource(
-                engine="postgres",
-                description="House sales data",
-                connection_data={
-                    'user': 'demo_user',
-                    'password': 'demo_password',
-                    'host': 'samples.mindsdb.com',
-                    'port': 5432,
-                    'database': 'demo',
-                    'schema': 'demo_data'
-                }
-                tables=["house_sales"],
-            )
-
-            # Create the wrapper for the Minds API by passing in the data sources created above.
-            api_wrapper = AIMindAPIWrapper(
-                datasources=[data_source]
-            )
-
-            # Create the tool by simply passing in the API wrapper from before.
-            tool = AIMindTool(api_wrapper=api_wrapper)
-
-    Invocation with args:
-        .. code-block:: python
-
-            tool.invoke({"query": "How many three-bedroom houses were sold in 2008?"})
-
-        .. code-block:: python
-
-            'The number of three-bedroom houses sold in 2008 was 8.'
-
-    Invocation with ToolCall:
-
-        .. code-block:: python
-
-            tool.invoke({"args": {"query": "How many three-bedroom houses were sold in 2008?"}, "id": "1", "name": tool.name, "type": "tool_call"})
-
-        .. code-block:: python
-
-            ToolMessage(content='The query has been executed successfully. A total of 8 three-bedroom houses were sold in 2008.', name='ai_mind', tool_call_id='1')
-    """  # noqa: E501
+    """
+    The AIMind tool.
+    """
 
     name: str = "ai_mind"
-    description: Text = (
+    description: str = (
         "A wrapper around [AI-Minds](https://mindsdb.com/minds). "
         "Useful for when you need answers to questions from your data, stored in "
         "data sources including PostgreSQL, MySQL, MariaDB, ClickHouse, Snowflake "
@@ -189,7 +231,7 @@ class AIMindTool(BaseTool):  # type: ignore[override]
     api_wrapper: AIMindAPIWrapper
 
     def _run(
-        self, query: Text, *, run_manager: Optional[CallbackManagerForToolRun] = None
+        self, query: str, *, run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> str:
         return self.api_wrapper.run(query)
 
