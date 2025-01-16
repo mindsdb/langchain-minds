@@ -88,7 +88,10 @@ class AIMindDataSource(BaseModel):
 
         # Check if the data source already exists.
         try:
-            if minds_client.datasources.get(self.name):
+            # If the data source already exists, only the name is required.
+            if minds_client.datasources.get(self.name) and (
+                self.engine or self.description or self.connection_data
+            ):
                 raise ValueError(
                     f"The data source with the name '{self.name}' already exists."
                     "Only the name is required to initialize an existing data source."
@@ -96,7 +99,7 @@ class AIMindDataSource(BaseModel):
         except ObjectNotFound:
             # If the parameters for creating the data source are not provided,
             # raise an error.
-            if not self.engine or not self.description or not self.connection_data:
+            if not self.engine or not self.connection_data:
                 raise ValueError(
                     "The required parameters for creating the data source are not"
                     " provided."
@@ -177,7 +180,8 @@ class AIMindAPIWrapper(BaseModel):
 
         # Check if the Mind already exists.
         try:
-            if minds_client.minds.get(self.name):
+            # If the Mind already exists, only the name is required.
+            if minds_client.minds.get(self.name) and self.datasources:
                 raise ValueError(
                     f"The Mind with the name '{self.name}' already exists."
                     "Only the name is required to initialize an existing Mind."
