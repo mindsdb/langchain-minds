@@ -35,7 +35,7 @@ class AIMindDataSource(BaseModel):
     """
 
     name: str = Field(default=None, description="Name of the data source")
-    minds_api_key: SecretStr = Field(
+    minds_api_key: Optional[SecretStr] = Field(
         default=None, description="API key for the Minds API"
     )
     engine: Optional[str] = Field(
@@ -132,7 +132,7 @@ class AIMindAPIWrapper(BaseModel):
     """
 
     name: str = Field(description="Name of the Mind")
-    minds_api_key: SecretStr = Field(
+    minds_api_key: Optional[SecretStr] = Field(
         default=None, description="API key for the Minds API"
     )
     datasources: Optional[List[AIMindDataSource]] = Field(
