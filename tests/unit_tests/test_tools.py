@@ -15,8 +15,10 @@ class TestAIMindToolUnit(ToolsUnitTests):
     @property
     def tool_constructor_params(self) -> dict:
         with patch("langchain_minds.tools.Client") as mock_minds_client:
-            mock_minds_client.datasources.get.side_effect = ObjectNotFound
-            mock_minds_client.datasources.create.return_value = MagicMock()
+            mock_minds_client.return_value.datasources.get.side_effect = MagicMock(
+                side_effect=ObjectNotFound
+            )
+            mock_minds_client.return_value.datasources.create.return_value = MagicMock()
             datasource = AIMindDataSource(
                 name="mock_datasource",
                 description="house sales",
@@ -32,8 +34,10 @@ class TestAIMindToolUnit(ToolsUnitTests):
                 tables=["house_sales"],
             )
 
-        with patch("langchain_minds.tools.Client") as mock_minds_client:
-            mock_minds_client.minds.create.return_value = MagicMock()
+            mock_minds_client.return_value.minds.get.side_effect = MagicMock(
+                side_effect=ObjectNotFound
+            )
+            mock_minds_client.return_value.minds.create.return_value = MagicMock()
             api_wrapper = AIMindAPIWrapper(name="mock_mind", datasources=[datasource])
 
         return {"api_wrapper": api_wrapper}
