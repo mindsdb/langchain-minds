@@ -96,6 +96,7 @@ class AIMindDataSource(BaseModel):
                     f"The data source with the name '{self.name}' already exists."
                     "Only the name is required to initialize an existing data source."
                 )
+            return
         except ObjectNotFound:
             # If the parameters for creating the data source are not provided,
             # raise an error.
@@ -186,6 +187,7 @@ class AIMindAPIWrapper(BaseModel):
                     f"The Mind with the name '{self.name}' already exists."
                     "Only the name is required to initialize an existing Mind."
                 )
+            return
         except ObjectNotFound:
             # If the data sources are not provided, raise an error.
             if not self.datasources:
