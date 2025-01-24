@@ -57,6 +57,7 @@ datasource = AIMindDataSource(
 )
 
 # NOTE: Feel free to use the above connection data as is! It's our demo database open to the public.
+# The password is "demo_password".
 
 # To re-use an existing data source, simply provide the name of the data source without any other parameters.
 # datasource = AIMindDataSource(
