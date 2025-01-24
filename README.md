@@ -54,7 +54,10 @@ datasource = AIMindDataSource(
     engine="postgres",
     connection_data={
         "user": 'demo_user',
-        "password": AIMindEnvVar('POSTGRES_PASSWORD', is_secret=True), # Use an environment variable for the password.
+        "password": AIMindEnvVar(
+            'POSTGRES_PASSWORD',
+            is_secret=True
+        ), # Use an environment variable for the password.
         "host": "samples.mindsdb.com",
         "port": 5432,
         "database": "demo",
@@ -63,15 +66,17 @@ datasource = AIMindDataSource(
     tables=['house_sales']
 )
 
-# NOTE: Feel free to use the above connection data as is! It's our demo database open to the public.
-# The password is "demo_password".
+# NOTE: Feel free to use the above connection data as is!
+# It's our demo database open to the public.
 
-# To re-use an existing data source, simply provide the name of the data source without any other parameters.
+# To re-use an existing data source, simply provide the name of the data source
+# without any other parameters.
 # datasource = AIMindDataSource(
 #     name="demo_datasource",
 # )
 
-# Create the wrapper for the Minds API by giving the Mind a name and passing in the data sources created above.
+# Create the wrapper for the Minds API by giving the Mind a name and passing in the
+# data sources created above.
 # This will create a new Mind with the given name and access to the data sources.
 api_wrapper = AIMindAPIWrapper(
     name="demo_mind",
