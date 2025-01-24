@@ -16,6 +16,11 @@ Login to your Minds account at https://mdb.ai and obtain an API key and set it a
 export MINDS_API_KEY=<YOUR_API_KEY>
 ```
 
+Set the password for our demo database as an environment variable.
+```bash
+export POSTGRES_PASSWORD=demo_password
+```
+
 OR
 
 ```python
@@ -32,6 +37,8 @@ if not os.environ.get("POSTGRES_PASSWORD"):
 ## Usage
 
 The `AIMindTool` can be used to configure and query a [range of data sources](https://docs.mdb.ai/docs/data_sources) in plain English.
+
+### Initialization
 
 ```python
 from langchain_minds import AIMindDataSource, AIMindEnvVar, AIMindAPIWrapper, AIMindTool
@@ -80,6 +87,8 @@ api_wrapper = AIMindAPIWrapper(
 tool = AIMindTool(
     api_wrapper=api_wrapper
 )
+
+### Invokation
 
 # Invoke the tool by asking a question in plain English.
 tool.invoke({"query": "How many three-bedroom houses were sold in 2008?"})
