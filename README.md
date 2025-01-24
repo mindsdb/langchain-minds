@@ -35,9 +35,11 @@ from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
 
 
 # Create a data source that your Mind will have access to.
+# This will create a new data source using the connection data provided with the given name.
 # To configure additional data sources, simply create additional instances of
 # AIMindDataSource and pass it to the wrapper below.
 datasource = AIMindDataSource(
+    name="demo_datasource",
     description='house sales data',
     engine='postgres',
     connection_data={
@@ -51,10 +53,22 @@ datasource = AIMindDataSource(
     tables=['house_sales']
 )
 
-# Create the wrapper for the Minds API by passing in the data sources created above.
+# To re-use an existing data source, simply provide the name of the data source without any other parameters.
+# datasource = AIMindDataSource(
+#     name="demo_datasource",
+# )
+
+# Create the wrapper for the Minds API by giving the Mind a name and passing in the data sources created above.
+# This will create a new Mind with the given name and access to the data sources.
 api_wrapper = AIMindAPIWrapper(
+    name="demo_mind",
     datasources=[datasource]
 )
+
+# To re-use an existing Mind, simply provide the name of the Mind without any data sources.
+# aimind_tool = AIMindAPIWrapper(
+#     name="demo_mind",
+# )
 
 # Create the tool by simply passing in the API wrapper from before.
 tool = AIMindTool(
