@@ -1,6 +1,11 @@
 from importlib import metadata
 
-from langchain_minds.tools import AIMindAPIWrapper, AIMindDataSource, AIMindTool
+from langchain_minds.tools import (
+    AIMindAPIWrapper,
+    AIMindDataSource,
+    AIMindEnvVar,
+    AIMindTool,
+)
 
 try:
     __version__ = metadata.version(__package__)
@@ -10,8 +15,9 @@ except metadata.PackageNotFoundError:
 del metadata  # optional, avoids polluting the results of dir(__package__)
 
 __all__ = [
-    "AIMindDataSource",
     "AIMindAPIWrapper",
+    "AIMindDataSource",
+    "AIMindEnvVar",
     "AIMindTool",
     "__version__",
 ]
