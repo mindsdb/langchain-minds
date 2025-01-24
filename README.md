@@ -89,7 +89,7 @@ tool = AIMindTool(
 )
 ```
 
-### Invokation
+### Invocation
 
 ```
 # Invoke the tool by asking a question in plain English.
