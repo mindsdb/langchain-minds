@@ -87,9 +87,11 @@ api_wrapper = AIMindAPIWrapper(
 tool = AIMindTool(
     api_wrapper=api_wrapper
 )
+```
 
 ### Invokation
 
+```
 # Invoke the tool by asking a question in plain English.
 tool.invoke({"query": "How many three-bedroom houses were sold in 2008?"})
 ```
