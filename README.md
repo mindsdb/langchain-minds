@@ -38,7 +38,7 @@ if not os.environ.get("POSTGRES_PASSWORD"):
 
 The `AIMindTool` can be used to configure and query a [range of data sources](https://docs.mdb.ai/docs/data_sources) in plain English.
 
-### Initialization
+### Instantiation
 
 ```python
 from langchain_minds import AIMindDataSource, AIMindEnvVar, AIMindAPIWrapper, AIMindTool
