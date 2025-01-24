@@ -24,6 +24,9 @@ import os
 
 if not os.environ.get("MINDS_API_KEY"):
     os.environ["MINDS_API_KEY"] = getpass.getpass("MINDS API key:\n")
+
+if not os.environ.get("POSTGRES_PASSWORD"):
+    os.environ["POSTGRES_PASSWORD"] = getpass.getpass("Postgres password:\n")
 ```
 
 ## Usage
@@ -31,7 +34,7 @@ if not os.environ.get("MINDS_API_KEY"):
 The `AIMindTool` can be used to configure and query a [range of data sources](https://docs.mdb.ai/docs/data_sources) in plain English.
 
 ```python
-from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
+from langchain_minds import AIMindDataSource, AIMindEnvVar, AIMindAPIWrapper, AIMindTool
 
 
 # Create a data source that your Mind will have access to.
@@ -40,18 +43,20 @@ from langchain_minds import AIMindDataSource, AIMindAPIWrapper, AIMindTool
 # AIMindDataSource and pass it to the wrapper below.
 datasource = AIMindDataSource(
     name="demo_datasource",
-    description='house sales data',
-    engine='postgres',
+    description="house sales data",
+    engine="postgres",
     connection_data={
-        'user': 'demo_user',
-        'password': 'demo_password',
-        'host': 'samples.mindsdb.com',
-        'port': 5432,
-        'database': 'demo',
-        'schema': 'demo_data'
+        "user": 'demo_user',
+        "password": AIMindEnvVar('POSTGRES_PASSWORD', is_secret=True), # Use an environment variable for the password.
+        "host": "samples.mindsdb.com",
+        "port": 5432,
+        "database": "demo",
+        "schema": "demo_data"
     },
     tables=['house_sales']
 )
+
+# NOTE: Feel free to use the above connection data as is! It's our demo database open to the public.
 
 # To re-use an existing data source, simply provide the name of the data source without any other parameters.
 # datasource = AIMindDataSource(
