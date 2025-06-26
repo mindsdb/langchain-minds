@@ -1,4 +1,8 @@
 name: release
+
+permissions:
+  contents: read
+
 run-name: Release ${{ inputs.working-directory }} by @${{ github.actor }}
 on:
   workflow_call:
